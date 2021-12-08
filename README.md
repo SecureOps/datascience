@@ -31,6 +31,31 @@ In order to enable agent auto-enrollment using a passphrase, set *wazuh.authd.ag
 
 In order to enable agent auto-enrollment using *X509* certificates, set *wazuh.authd.ssl_agent_ca_enabled* to *true*. This will automatically use the mounted TLS [secret](https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/secret-v1/) cited [below](#TLS/SSL). Any agent presenting a certificate signed by the provided *rootCA.crt* will be accepted.
 
+### Agent enrollment in the field
+The following configuration section must be included in */var/ossec/etc/ossec.conf*:
+```
+
+<ossec_config>
+  <client>
+    <server>
+      <address>DNS_NAME_OF_WAZUH_DEPLOYMENT</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <crypto_method>aes</crypto_method>
+    <enrollment>
+      <enabled>yes</enabled>
+      <agent_name>hostnameofsystem</agent_name>
+      <manager_address>DNS_NAME_OF_WAZUH_DEPLOYMENT</manager_address>
+      <server_ca_path>CERT_MOUNTED_ON_WAZUH_DEPLOYMENT</server_ca_path>
+      <agent_key_path>/etc/ssl/private/key.pem</agent_key_path>
+      <agent_certificate_path>/etc/ssl/certs/hostcert.pem</agent_certificate_path>
+    </enrollment>
+  </client>
+</ossec_config>  
+```
+Your agent should auto-enroll when the service starts up.
+
 ### Configuration file override
 To enable "advanced" configurations for the cluster, configuration files for all components can be provided inline. This should not be required to get most clusters up and running and the default container environment variables coupled with the helm charts set sane defaults. It is suggested to **ignore this section** and use it as a last resort.
 
@@ -169,6 +194,7 @@ The "data" portion of the secret always contains the PEM-encoded data for each a
   - Provided JSON
 - Test persistence of the various containers under different conditions
 - Add provisions to allow for syslog service. This wasn't done because no encryption is supported at the moment.
+- Right now worker/manager start in random order and may cause workers to enter a prolonged unstable state. Fix would be to change the container to probe for the master and fail if it's not available, thus triggering the worker container to be restarted and try again.
 
 
 # Resource materials
